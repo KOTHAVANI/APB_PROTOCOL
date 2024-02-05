@@ -1,56 +1,52 @@
-//Define a apb master monitor class from uvm monitor
-class apb_master_monitor extends uvm_monitor;
-  
+//Define a uvm agent class named apb_master agent
+class apb_master_agent extends uvm_agent;
+
   //register the class with uvm factory
-	`uvm_component_utils(apb_master_monitor)
+	`uvm_component_utils(apb_master_agent)
+	
+	// Configuration member
+	apb_master_config m_cfg;	
 
-  //declare a virtual interface instance 
-	virtual apb_if vif;
+	//	Component Members
+	apb_base_seq_item 						m_apb_base_seq_item;
+	apb_master_driver  							m_apb_master_driver;
+	apb_master_seq								m_apb_master_seq;
+	apb_master_sequencer 						m_sequencer;
+	apb_master_monitor							m_apb_master_monitor;
 
-  //analysis port : parameterized to apb_base_sequence item transaction
-	uvm_analysis_port#(apb_base_seq_item) ap;	
-	apb_base_seq_item tr;
-		
-//constructor
-function new(string name, uvm_component parent);
-  //call the base class constructor
-	super.new(name, parent);
-	ap = new("ap", this);
-endfunction: new
+  //constructor
+  function new(string name = "apb_master_agent", uvm_component parent);
+    //call the base class constructor
+	  super.new(name, parent);
+  endfunction
+  
+  //build phase
+  function void build_phase(uvm_phase phase);
+    super.build_phase(phase);
 
-//build phase - get handle to virtual interface 
-function void build_phase(uvm_phase phase);
-	super.build_phase(phase);
-	if (!uvm_config_db#(virtual apb_if)::get(this, "", "apb_vif", vif)) begin
-		`uvm_fatal(get_full_name(), "No virtual interface specified for apb_master_driver")
-	end 
-		
-endfunction
+    // get configuration object
+    if (m_cfg == null) begin
+      if (!uvm_config_db#(apb_master_config)::get(this, "*", "apb_master_config", m_cfg))
+       `uvm_warning(get_full_name(), "Config not set for master agent, using default is_active field")
+      end	
 
-// Task: run_phase
-task run_phase(uvm_phase phase);
-	//forever loop to monitor signals and send transactions	
-	forever begin
-		wait (vif.master.PSEL === 1'b1);
-		
-		tr = apb_base_seq_item::type_id::create("tr", this);
-    tr.apb_tr = (this.vif.master.PWRITE) ? apb_base_seq_item::WRITE : apb_base_seq_item::READ;
-		tr.addr = this.vif.master.PADDR;
-		
-		@ (posedge vif.PCLK);
-		wait (this.vif.master.PENABLE === 1'b1 && this.vif.master.PREADY === 1'b1);
-		
-		if(this.vif.master.PWRITE) 	
-			tr.wdata = this.vif.master.PWDATA; 
-		else 
-			tr.rdata = this.vif.master.PRDATA;
-		
-		wait  (this.vif.master.PENABLE === 1'b0)
-		uvm_report_info("APB_MASTER_MONITOR", $sformatf("%s",tr.apb_master()));		
-		ap.write(tr); //Write to analysis port
-		tr.print();
+        m_apb_base_seq_item		= apb_base_seq_item::type_id::create("m_apb_master_seq_item");
+        m_apb_master_seq			= apb_master_seq::type_id::create("m_apb_master_seq");	
+        m_apb_master_monitor		= apb_master_monitor::type_id::create("m_apb_master_monitor",this);
 
-	end
-endtask	
+      if(m_cfg.is_active == UVM_ACTIVE) begin
+           m_apb_master_driver		= apb_master_driver::type_id::create("m_apb_master_driver",this);
+           m_sequencer 			= apb_master_sequencer::type_id::create("m_sequencer",this); 
+      end
+  endfunction
+
+	//connect driver and sequencer port to export
+  function void connect_phase(uvm_phase phase);
+	  super.connect_phase(phase);	
+	  if(m_cfg.is_active == UVM_ACTIVE) begin
+      //connect the driver to the sequencer
+		  m_apb_master_driver.seq_item_port.connect(m_sequencer.seq_item_export);
+	  end
+  endfunction	
 
 endclass // end of the class

@@ -13,7 +13,7 @@ The advanced peripheral bus (APB) is part of the advanced microcontroller bus ar
   - Interface with address and data widths of 8.
   - Includes master and slave clocking blocks.
   - Utilizes modport to define directions for master and slave ports.
-  - 
+    
 # apb_test :
 
 - Test is a place where we start the sequences on sequencer. In base test we will set all the parameters of configuration database class according to our requirements. We will also get the interface set in top and again set it to the interface handles in local configuration database classes. The base test also creates the environment. All these things happen in build phase of base test. The further child tests will be made from this base test class. In child test we just create the handle of virtual sequence and start it on virtual sequencer, before starting the sequence an objection is raised and this objection is dropped again after starting the sequence. If we don’t raise the objections, the simulator will think that there is no run phase to execute, so the simulator can jump directly to extract phase. The total number of raised objections should be equal to the number of dropped objections. 

@@ -54,5 +54,9 @@ The advanced peripheral bus (APB) is part of the advanced microcontroller bus ar
 
   - The sequencer in UVM just acts as a gateway between sequence and driver. This is the only “non-virtual” class in our UVM test bench architecture. The sequencer is also parameterized by transaction class. The sequencer takes the randomized data from sequence and passes it to the driver to which it is connected, thus it connects several sequences to driver. The Sequencer is responsible for connecting the Master Sequence and Master Driver using the UVM Sequencer. This ensures proper coordination and execution of transactions.
 
+# Virtual Sequencer
+- To reduce the dependency of test case writer and TB developer, these two virtual sequence and virtual sequencer we are considering. 
+
+
 
 
